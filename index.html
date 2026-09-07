@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Nexus - Rule34 and Gelbooru browser">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.rule34.xxx https://rule34.xxx https://*.gelbooru.com https://gelbooru.com; media-src 'self' blob: https://*.rule34.xxx https://rule34.xxx https://*.gelbooru.com https://gelbooru.com; connect-src 'self' https://api.rule34.xxx https://gelbooru.com; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Nexus</title>
+  <script type="module" src="/src/main.js"></script>
+</head>
+
+<body>
+
+  <div id="gateway-screen" class="gateway-screen">
+    <div class="gateway-background"></div>
+    <div class="gateway-content">
+      <div class="gateway-orb" aria-hidden="true"></div>
+      <p class="gateway-eyebrow">personal media command center</p>
+      <h1 class="gateway-logo">NEXUS</h1>
+      <p class="gateway-sub">Pick a source. Search faster. Build better recommendations every click.</p>
+      <div class="gateway-stats" aria-label="Nexus capabilities">
+        <span>Fast search</span>
+        <span>Smart FYP</span>
+        <span>Vault memory</span>
+      </div>
+      <div class="gateway-cards">
+        <button class="gw-card r34" data-mode="r34" aria-label="Initialize Rule 34">
+          <small>image/video posts</small>
+          <h2>R34</h2>
+          <span>Rule 34</span>
+        </button>
+        <button class="gw-card gel" data-mode="gel" aria-label="Initialize Gelbooru">
+          <small>booru database</small>
+          <h2>GEL</h2>
+          <span>Gelbooru</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="app-layout" class="app-layout" style="display: none;">
+    <main class="main-content">
+
+      <header class="top-bar">
+        <div class="top-bar-lead">
+          <div class="brand-compact" aria-hidden="true">
+            <div class="brand-icon">N</div>
+            <span class="brand-word">NEXUS</span>
+          </div>
+
+        </div>
+
+        <div class="search-wrapper">
+          <div class="search-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </div>
+          <input type="text" id="search-input" class="search-input" placeholder="Search tags (space separated)..."
+            autocomplete="off" aria-label="Search">
+          <ul id="suggestions-list" class="suggestions-list" role="listbox" hidden></ul>
+        </div>
+
+        <div class="top-bar-controls">
+          <div class="nav-controls">
+            <button type="button" class="icon-btn" id="history-back" aria-label="Go Back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn" id="history-forward" aria-label="Go Forward">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+          <button type="button" id="switch-db-btn" class="switch-db-btn" aria-label="Switch Database">SWITCH DB</button>
+        </div>
+      </header>
+
+      <div class="view-container" id="grid-view">
+        <div class="view-header">
+          <div style="display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap;">
+            <h2 id="current-view-title" class="view-title">HOME</h2>
+            <span id="post-count-display" class="post-count-badge" style="display:none;"></span>
+          </div>
+        </div>
+        <div id="previous-searches-panel" class="previous-searches-panel" style="display:none;"></div>
+
+        <div class="explore-layout">
+
+          <div class="grid-content-wrapper">
+            <div id="media-grid" class="media-grid"></div>
+            <div id="loader" class="loader-container" hidden>
+              <div class="spinner"></div>
+            </div>
+            <div id="end-of-results" class="end-msg" hidden>End of results.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-container" id="keep-up-view" style="display: none;">
+        <div class="view-header">
+          <h2 class="view-title">KEEP UP</h2>
+          <p style="color:var(--text-muted); margin-top:0.5rem; font-size:0.9rem;">The latest posts from your tracked
+            tags.</p>
+        </div>
+        <div id="keep-up-content" class="keep-up-layout"></div>
+        <div id="keep-up-loader" class="loader-container" hidden>
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <div class="reels-view" id="reels-view" style="display: none;">
+        <div class="reels-scroll-container" id="reels-container"></div>
+        <div id="reels-loader" class="loader-container" hidden>
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <nav class="bottom-tab-bar" aria-label="Main Navigation">
+        <button type="button" class="tab-item nav-item active" data-view="home" role="menuitem" id="nav-home"
+          aria-label="Home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          <span class="nav-label">Home</span>
+        </button>
+        <button type="button" class="tab-item nav-item" data-view="explore" role="menuitem" id="nav-explore"
+          aria-label="Explore">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <span class="nav-label">Explore</span>
+        </button>
+        <button type="button" class="tab-item nav-item" data-view="reels" role="menuitem" id="nav-reels"
+          aria-label="Reels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+            <line x1="7" y1="2" x2="7" y2="22" />
+            <line x1="17" y1="2" x2="17" y2="22" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <line x1="2" y1="7" x2="7" y2="7" />
+            <line x1="2" y1="17" x2="7" y2="17" />
+            <line x1="17" y1="17" x2="22" y2="17" />
+            <line x1="17" y1="7" x2="22" y2="7" />
+          </svg>
+          <span class="nav-label">Reels</span>
+        </button>
+        <button type="button" class="tab-item nav-item" data-view="keep_up" role="menuitem" id="nav-keep-up"
+          aria-label="Keep Up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          <span class="nav-label">Keep Up</span>
+        </button>
+        <button type="button" class="tab-item nav-item" data-view="vault" role="menuitem" id="nav-media-vault"
+          aria-label="Vault">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span class="nav-label">Vault</span>
+        </button>
+
+        <button type="button" class="tab-item nav-item tab-item-settings" id="settings-trigger" role="menuitem"
+          aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+    </main>
+  </div>
+
+  <dialog id="settings-modal" class="settings-modal" aria-labelledby="settings-title">
+    <div class="settings-modal-header">
+      <h2 id="settings-title">Preferences</h2>
+      <button class="icon-btn close-modal-btn" id="close-settings" aria-label="Close Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="settings-modal-body">
+
+      <section class="settings-section">
+        <h3 class="section-title">UI & Layout</h3>
+        <div class="settings-group bento-group">
+          <div class="toggle-row">
+            <div>
+              <span class="row-label">Infinite Scroll</span>
+              <span class="row-subtext">Automatically load the next page</span>
+            </div>
+            <button class="toggle-switch active" id="inf-scroll-toggle" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <span class="row-label">NSFW Blur</span>
+              <span class="row-subtext">Blur thumbnails until hovered</span>
+            </div>
+            <button class="toggle-switch" id="blur-thumbs-toggle" role="switch" aria-checked="false"></button>
+          </div>
+          <div class="select-row">
+            <span class="row-label">Grid Size</span>
+            <select id="grid-size-select" class="form-input select-small" aria-label="Grid Size">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large" selected>Large</option>
+            </select>
+          </div>
+          <div class="select-row">
+            <span class="row-label">Sort Order</span>
+            <select id="sort-select" class="form-input select-small" aria-label="Sort Order">
+              <option value="new">Latest (Default)</option>
+              <option value="old">Oldest</option>
+              <option value="top">Top Rated</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="section-title">Media Playback</h3>
+        <div class="settings-group bento-group">
+          <div class="toggle-row">
+            <div>
+              <span class="row-label">Auto-Play Videos</span>
+              <span class="row-subtext">Videos start playing immediately in the viewer</span>
+            </div>
+            <button class="toggle-switch active" id="autoplay-videos-toggle" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <span class="row-label">Mute by Default</span>
+              <span class="row-subtext">Start viewer videos without sound</span>
+            </div>
+            <button class="toggle-switch active" id="mute-videos-toggle" role="switch" aria-checked="true"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="section-title">Theme Accent</h3>
+        <div class="theme-picker">
+          <button class="theme-btn" data-theme="#ff0055" data-rgb="255,0,85" style="background: #ff0055;"
+            aria-label="Pink"></button>
+          <button class="theme-btn" data-theme="#0088ff" data-rgb="0,136,255" style="background: #0088ff;"
+            aria-label="Blue"></button>
+          <button class="theme-btn" data-theme="#00e676" data-rgb="0,230,118" style="background: #00e676;"
+            aria-label="Green"></button>
+          <button class="theme-btn" data-theme="#9d00ff" data-rgb="157,0,255" style="background: #9d00ff;"
+            aria-label="Purple"></button>
+          <button class="theme-btn" data-theme="#ff9900" data-rgb="255,153,0" style="background: #ff9900;"
+            aria-label="Orange"></button>
+          <button class="theme-btn" data-theme="#f24e43" data-rgb="242,78,67" style="background: #f24e43;"
+            aria-label="Red"></button>
+        </div>
+      </section>
+
+      <section class="settings-section split-col-3">
+        <div>
+          <h3 class="section-title text-success">🔔 Tracked</h3>
+          <div class="input-row">
+            <input type="text" id="track-input" class="form-input" placeholder="Track tag..." aria-label="Track tag">
+            <button class="btn-icon success" id="add-track-btn">🔔</button>
+          </div>
+          <div id="track-tags-list" class="chip-container"></div>
+        </div>
+        <div>
+          <h3 class="section-title text-star">★ Favorites</h3>
+          <div class="input-row">
+            <input type="text" id="fav-input" class="form-input" placeholder="Add tag..." aria-label="Add favorite tag">
+            <button class="btn-icon star" id="add-fav-btn">★</button>
+          </div>
+          <div id="fav-tags-list" class="chip-container"></div>
+        </div>
+        <div>
+          <h3 class="section-title text-danger">Blacklist</h3>
+          <div class="input-row">
+            <input type="text" id="bl-input" class="form-input" placeholder="Block tag..."
+              aria-label="Add blacklist tag">
+            <button class="btn-icon danger" id="add-bl-btn">+</button>
+          </div>
+          <div id="bl-tags-list" class="chip-container"></div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="section-title" style="color:#f5a623;">📌 Saved Tags</h3>
+        <p class="row-subtext" style="margin-bottom:10px;">Tags you've pinned for later. Click a tag to search it
+          instantly.</p>
+        <div id="saved-tags-list" class="chip-container saved-tags-container"></div>
+      </section>
+
+      <section class="settings-section" id="r34-settings-group">
+        <h3 class="section-title accent-r34">Rule34 account</h3>
+        <div class="settings-group bento-group">
+          <p class="row-subtext">Optional. Your <strong>User ID</strong> and <strong>API Key</strong> from your Rule34
+            account. Stored only on this device, and never included in an export.</p>
+          <input type="text" id="r34-uid-input" class="form-input" placeholder="User ID" autocomplete="off"
+            autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="numeric" aria-label="Rule34 User ID">
+          <input type="password" id="r34-key-input" class="form-input" placeholder="API Key" autocomplete="off"
+            autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Rule34 API Key">
+          <div class="settings-actions">
+            <button type="button" class="btn btn-outline-info" id="save-r34-creds-btn">Save</button>
+            <button type="button" class="btn btn-outline-warning" id="clear-r34-creds-btn">Clear</button>
+          </div>
+          <p class="row-subtext" id="r34-creds-status" role="status"></p>
+        </div>
+      </section>
+
+      <section class="settings-section" id="gel-settings-group">
+        <h3 class="section-title accent-gel">Gelbooru account</h3>
+        <div class="settings-group bento-group">
+          <p class="row-subtext">Optional. Your <strong>User ID</strong> and <strong>API Key</strong> from your Gelbooru
+            account. Stored only on this device, and never included in an export.</p>
+          <input type="text" id="gel-uid-input" class="form-input" placeholder="User ID" autocomplete="off"
+            autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="numeric" aria-label="Gelbooru User ID">
+          <input type="password" id="gel-key-input" class="form-input" placeholder="API Key" autocomplete="off"
+            autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Gelbooru API Key">
+          <div class="settings-actions">
+            <button type="button" class="btn btn-outline-info" id="save-gel-creds-btn">Save</button>
+            <button type="button" class="btn btn-outline-warning" id="clear-gel-creds-btn">Clear</button>
+          </div>
+          <p class="row-subtext" id="gel-creds-status" role="status"></p>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="section-title">Data Management</h3>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline-success" id="backup-btn">Export data</button>
+          <button type="button" class="btn btn-outline-info" id="restore-btn">Import data</button>
+          <input type="file" id="restore-file-input" accept="application/json,.json" hidden>
+          <button type="button" class="btn btn-outline-warning" id="reset-algo-btn">Reset For You</button>
+        </div>
+        <p class="row-subtext" id="backup-status" role="status"></p>
+        <p class="row-subtext">Exports go through the iOS share sheet. Accounts are never included in an export.</p>
+      </section>
+
+    </div>
+  </dialog>
+
+  <dialog id="media-viewer" class="lightbox" aria-modal="true">
+    <button class="lightbox-close" id="close-viewer" aria-label="Close Viewer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </svg>
+    </button>
+    <div class="lightbox-content">
+      <div class="lightbox-media" id="lightbox-media-wrapper">
+        <button class="lightbox-nav prev" id="lightbox-prev" aria-label="Previous Media">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <div id="lightbox-media-container"
+          style="width:100%; height:100%; display:flex; justify-content:center; align-items:center;"></div>
+        <button class="lightbox-nav next" id="lightbox-next" aria-label="Next Media">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+      <aside class="lightbox-sidebar" id="lightbox-sidebar">
+        <div class="sidebar-top">
+          <h3 class="sr-only">Media Details</h3>
+          <div class="action-row">
+            <button class="action-btn" id="viewer-fav-btn" aria-label="Save to Vault">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </button>
+            <button class="action-btn" id="viewer-like-btn" aria-label="Like">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+            <button type="button" class="action-btn" id="viewer-save-btn" aria-label="Save this file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          </div>
+          <p class="row-subtext" id="viewer-save-status" role="status"></p>
+        </div>
+        <div class="stats-grid" id="viewer-stats"></div>
+        <div class="tags-wrapper" id="viewer-tags"></div>
+      </aside>
+    </div>
+  </dialog>
+
+</body>
+
+</html>

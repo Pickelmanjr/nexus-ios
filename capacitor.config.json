@@ -1,0 +1,13 @@
+{
+  "appId": "com.nexus.personal",
+  "appName": "Nexus",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

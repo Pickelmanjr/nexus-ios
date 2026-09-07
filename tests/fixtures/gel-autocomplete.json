@@ -1,0 +1,4 @@
+[
+  { "type": "tag_query", "label": "example_tag (812)", "value": "example_tag", "category": "0", "post_count": "812" },
+  { "type": "tag_query", "label": "example_series (120)", "value": "example_series", "category": "copyright", "post_count": "120" }
+]

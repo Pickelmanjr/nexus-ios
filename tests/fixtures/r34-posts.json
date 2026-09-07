@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1001,
+    "file_url": "//wimg.rule34.xxx/samples/1/sample_a.jpg",
+    "sample_url": "//wimg.rule34.xxx/samples/1/sample_a.jpg",
+    "preview_url": "//wimg.rule34.xxx/thumbnails/1/thumbnail_a.jpg",
+    "tags": "example_tag another_tag",
+    "width": 850,
+    "height": 1200,
+    "score": 5,
+    "rating": "safe"
+  },
+  {
+    "id": 1002,
+    "file_url": "https://wimg.rule34.xxx/images/1/b.webm",
+    "preview_url": "https://wimg.rule34.xxx/thumbnails/1/thumbnail_b.jpg",
+    "tags": "example_tag video",
+    "width": 1920,
+    "height": 1080,
+    "score": 12,
+    "rating": "questionable"
+  },
+  {
+    "id": 1003,
+    "file_url": "https://cdn.example-not-a-source.test/c.jpg",
+    "tags": "offsite_tag",
+    "score": 1
+  }
+]

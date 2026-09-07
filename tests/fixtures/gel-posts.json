@@ -1,0 +1,16 @@
+{
+  "@attributes": { "limit": 20, "offset": 0, "count": 137 },
+  "post": [
+    {
+      "id": 2001,
+      "file_url": "https://img3.gelbooru.com/images/aa/bb/one.png",
+      "sample_url": "https://img3.gelbooru.com/samples/aa/bb/sample_one.jpg",
+      "preview_url": "https://img3.gelbooru.com/thumbnails/aa/bb/thumbnail_one.jpg",
+      "tags": "example_tag second_tag",
+      "width": 1000,
+      "height": 1400,
+      "score": 9,
+      "rating": "general"
+    }
+  ]
+}

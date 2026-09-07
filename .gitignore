@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
+*.log
+.DS_Store
