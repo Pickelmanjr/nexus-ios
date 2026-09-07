@@ -160,6 +160,65 @@ test.describe('search', () => {
     await expect(page.locator('#card-r34\\:999'), 'the stale response must not land').toHaveCount(0);
   });
 
+  test('the sort preference reaches the request as the source expects', async ({ page }) => {
+    // A full page, so the bounded backfill scan does not keep firing requests
+    // with the previous sort while this test samples them.
+    const calls = await stubSources(page, {
+      posts: () => ({ json: Array.from({ length: 20 }, (_, i) => makePost('r34', String(600 + i))) })
+    });
+    await page.goto('/?m=r34');
+    await page.locator('#search-input').fill('example_tag');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('.media-card').first()).toBeVisible();
+
+    const sortCalls = () => calls
+      .filter(c => c.includes('s=post') && !c.includes('limit=0'))
+      .map(c => new URL(c));
+
+    for (const [option, expected] of [
+      ['top', 'example_tag sort:score:desc'],
+      ['old', 'example_tag sort:id:asc'],
+      ['new', 'example_tag']
+    ]) {
+      calls.length = 0;
+      await page.locator('#settings-trigger').click();
+      await page.locator('#sort-select').selectOption(option);
+      await page.locator('#close-settings').click();
+
+      await expect.poll(() => sortCalls().some(u => u.searchParams.get('tags') === expected),
+        { message: `sort ${option} must reach the source` }).toBe(true);
+      const url = sortCalls().find(u => u.searchParams.get('tags') === expected);
+      expect(url.searchParams.get('pid'), 'a re-sort restarts at the first page').toBe('0');
+    }
+  });
+
+  test('scrolling loads the next page and does not repeat the first', async ({ page }) => {
+    const pages = [];
+    await stubSources(page, {
+      posts: (url) => {
+        const pid = Number(url.searchParams.get('pid'));
+        pages.push(pid);
+        // 20 distinct posts per page, ids offset so nothing overlaps.
+        return { json: Array.from({ length: 20 }, (_, i) => makePost('r34', String(1000 + pid * 100 + i))) };
+      }
+    });
+    await page.goto('/?m=r34');
+    await page.locator('#search-input').fill('example_tag');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('.media-card').first()).toBeVisible();
+
+    const before = await page.locator('.media-card').count();
+    await page.locator('#grid-view').evaluate(el => el.scrollTo(0, el.scrollHeight));
+    await expect.poll(() => page.locator('.media-card').count()).toBeGreaterThan(before);
+
+    expect(pages, 'the feed must start at page zero').toContain(0);
+    expect(Math.max(...pages), 'scrolling must advance the page').toBeGreaterThan(0);
+
+    // Every rendered card is distinct: no page is applied twice.
+    const ids = await page.locator('.media-card').evaluateAll(els => els.map(el => el.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   test('autocomplete suggests tags and says so when the lookup fails', async ({ page }) => {
     let ok = true;
     await stubSources(page, {

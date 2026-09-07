@@ -16,7 +16,7 @@ benign fixtures.
 | Package audit | `npm run check` | **clean on source and dist**; scanner self-test caught its 2 planted violations |
 | Dangling calls | `npm run check` | 98 methods defined, 90 call sites, **all resolved** |
 | Encoding | `node scripts/check-encoding.mjs` | **clean**, no stray control characters |
-| Browser suite | `npm run test:e2e` | **86 passed, 0 failed** (43 tests × Chromium 153.0.8010.12 and WebKit 26.6) |
+| Browser suite | `npm run test:e2e` | **90 passed, 0 failed** (45 tests × Chromium 153.0.8010.12 and WebKit 26.6) |
 | Native project generation | `npx cap add ios`, `npx cap sync ios` | **succeeded on Windows** — Capacitor 8 uses Swift Package Manager, so no CocoaPods or macOS was needed |
 
 The browser suite runs against the **built** bundle served by `vite preview`,
@@ -25,7 +25,7 @@ not the dev-server module graph.
 ### What the browser suite actually covers
 
 Gateway limited to two sources; invalid `?m=` falling back to the gateway with
-no request fired; deep links; search first page at `pid=0`; genuinely empty
+no request fired; deep links; search first page at `pid=0`; sort reaching the request in each source's own spelling; pagination advancing without repeating a page; genuinely empty
 results distinguished from failures; malformed / blocked / 401 / 429 / 500
 responses each producing their own message with Retry or Open settings; retry
 succeeding; a failed page preserving the loaded grid; latest-query-wins with a
