@@ -1,0 +1,45 @@
+workflows:
+  nexus-unsigned-ios:
+    name: Nexus unsigned IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Verify and prepare app
+        script: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run build
+          npm run check
+          npx cap sync ios
+      - name: Compile unsigned iPhone app
+        script: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$CM_BUILD_DIR/build/NexusBuild" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' build
+      - name: Verify and package IPA
+        script: |
+          set -euo pipefail
+          APP="$CM_BUILD_DIR/build/NexusBuild/Build/Products/Release-iphoneos/App.app"
+          test -f "$APP/Info.plist"
+          EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          test -f "$APP/$EXECUTABLE"
+          lipo -verify_arch arm64 "$APP/$EXECUTABLE"
+          PACKAGE=$(mktemp -d)
+          mkdir -p "$PACKAGE/Payload" "$CM_BUILD_DIR/artifacts"
+          ditto "$APP" "$PACKAGE/Payload/App.app"
+          (cd "$PACKAGE" && /usr/bin/zip -qry "$CM_BUILD_DIR/artifacts/Nexus-unsigned.ipa" Payload)
+          cd "$CM_BUILD_DIR/artifacts"
+          unzip -t Nexus-unsigned.ipa
+          shasum -a 256 Nexus-unsigned.ipa > SHA256SUMS.txt
+    artifacts:
+      - artifacts/Nexus-unsigned.ipa
+      - artifacts/SHA256SUMS.txt
