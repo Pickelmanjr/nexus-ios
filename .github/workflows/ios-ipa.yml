@@ -2,6 +2,9 @@ name: Build Nexus IPA for Windows sideloading
 
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/ios-ipa.yml']
 
 permissions:
   contents: read
