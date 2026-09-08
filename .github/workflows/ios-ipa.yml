@@ -1,0 +1,64 @@
+name: Build Nexus IPA for Windows sideloading
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-ios-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies and verify web app
+        run: |
+          npm ci
+          npm test
+          npm run build
+          npm run check
+          npx cap sync ios
+      - name: Inspect Xcode toolchain and schemes
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project ios/App/App.xcodeproj
+      - name: Compile unsigned iPhone app
+        run: |
+          set -euo pipefail
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/NexusBuild" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' build
+      - name: Package unsigned IPA for Sideloadly
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/NexusBuild/Build/Products/Release-iphoneos/App.app"
+          test -d "$APP"
+          test -f "$APP/Info.plist"
+          EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          test -f "$APP/$EXECUTABLE"
+          lipo -verify_arch arm64 "$APP/$EXECUTABLE"
+          mkdir -p "$RUNNER_TEMP/NexusPackage/Payload" artifacts
+          ditto "$APP" "$RUNNER_TEMP/NexusPackage/Payload/App.app"
+          (cd "$RUNNER_TEMP/NexusPackage" && /usr/bin/zip -qry "$GITHUB_WORKSPACE/artifacts/Nexus-unsigned.ipa" Payload)
+          unzip -t artifacts/Nexus-unsigned.ipa
+          shasum -a 256 artifacts/Nexus-unsigned.ipa > artifacts/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-unsigned-IPA
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
